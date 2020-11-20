@@ -2,16 +2,15 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
-# from dash.exceptions import PreventUpdate
 import re
 import threading
-
+import sys
 
 p = re.compile('(\d.*):(.*)')
 losses = []
 taked_times = []
 hours_left = []
-
+log_file_path = sys.argv[1]
 
 def follow(thefile):
     from_beginning = True
@@ -37,7 +36,7 @@ def extract(line: str):
 
 
 def run():
-    logfile = open("/home/kuluum/Projects/darknet/dark_logs.txt", "r")
+    logfile = open(log_file_path, "r")
 
     loglines = follow(logfile)
     for line in loglines:
