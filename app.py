@@ -2,85 +2,111 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
-import re
+
+import plotly
+import plotly.graph_objs as go
+
+
+from DarknetLogParser import DarknetLogParser
 import threading
 import sys
 
-p = re.compile('(\d.*):(.*)')
-losses = []
-taked_times = []
-hours_left = []
-log_file_path = sys.argv[1]
+log_path = sys.argv[1]
 
-def follow(thefile):
-    from_beginning = True
-    while True:
-        if from_beginning:
-            for line in thefile.readlines():
-                yield line
-                # time.sleep(0.05)
-        else:
-            thefile.seek(0, 2)
-            from_beginning = True
+parser = DarknetLogParser(log_path)
+
+t = threading.Thread(target=parser.run)
 
 
-def extract(line: str):
-    info_splt = [i.strip() for i in line.split(',')]
-    if len(info_splt) < 6:
-        print('wtf', info_splt)
-        return None
-    avg_loss = float(info_splt[1].split()[0])
-    taked_time = float(info_splt[3].split()[0])
-    time_left = float(info_splt[5].split()[0])
-    return (avg_loss, taked_time, time_left)
+app = dash.Dash(__name__, external_stylesheets=['https://codepen.io/chriddyp/pen/bWLwgP.css'])
 
 
-def run():
-    logfile = open(log_file_path, "r")
+loss_defaul_layout = {
+    'uirevision': True,
+    'title': 'Loss',
+    'xaxis': {
+        'title': 'Iterations',
+        'fixedrange':True
+        },
+    'yaxis': {
+        'title': 'Avarage loss',
+        'fixedrange':True
+    }
+}
 
-    loglines = follow(logfile)
-    for line in loglines:
-        line = line.strip()
-        if p.match(line):
-            extracted = extract(line)
-            if extracted is not None:
-                loss, taked_time, time_left = extracted
-                losses.append(loss)
-                taked_times.append(taked_time)
-                hours_left.append(time_left)
+map_default_layout = {
+    'uirevision': True,
+    'title': 'Map',
+    'xaxis': {
+        'title': 'Iterations'
+        },
+    'yaxis': {
+        'title': 'Map'
+    }
+}
 
 
-t = threading.Thread(target=run)
+def loss_graph_data():
+    return go.Scatter(
+        y=parser.losses,
+        mode='lines+markers'
+    )
 
 
-app = dash.Dash(__name__)
+loss_graph = dcc.Graph(
+                    id='loss-graph',
+                    figure={
+                        'data': [loss_graph_data()
+                            # {
+                            #     'y': parser.losses,
+                            #     'type': 'line',
+                            #     'title': 'Loss'
+                            # },
+                        ],
+                        'layout': loss_defaul_layout
+                    },
+                    config={
+                        'modeBarButtons': [['hoverClosestCartesian', 'hoverCompareCartesian']]
+                    }
+            )
 
 
-app.layout = html.Div(
-    children=[
+def map_graph_data():
+    return go.Scatter(
+        x=parser.map_calculation_iterations,
+        y=parser.map_list,
+        mode='lines+markers'
+    )
+
+
+map_graph = dcc.Graph(
+                    id='map-graph',
+                    figure={
+                        'data': [
+                            map_graph_data()
+                        ],
+                        'layout': map_default_layout
+                    },
+                    config={
+                        'modeBarButtons': [['pan2d', 'zoom2d', 'resetScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian']]
+                    }
+            )
+
+app.layout = html.Div([
         html.H1(children='Darknet train', id='first'),
 
         html.Div(id='iterations_info'),
-        dcc.Graph(
-                id='example-graph',
-                figure={
-                    'data': [
-                        {
-                            'y': losses,
-                            'type': 'line'
-                        },
-                    ],
-                    'layout': {
-                        'uirevision': True,
-                        'title': 'Avarage loss'
-                    }
-                },
-                config={
-                    'modeBarButtons': [['pan2d', 'zoom2d', 'resetScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian']]
-                }
-            ),
-
+        html.Div(style={'padding': 5}),
         html.Div(id='time_left'),
+        html.Div(style={'padding': 5}),
+        html.Div(id='best_map'),
+
+        html.Div([
+            # six columns = 50% (12-column fluid grid with a max width of 960px) external_stylesheets
+            html.Div([loss_graph], className="six columns"),
+            html.Div([map_graph], className="six columns")
+        ], className="row"),
+
 
         dcc.Interval(id='timer', interval=2000),
     ]
@@ -90,65 +116,72 @@ app.layout = html.Div(
 @app.callback(Output('iterations_info', 'children'),
               [Input('timer', 'n_intervals')])
 def update_iteration(n_intervals):
-    style = {'padding': '5px', 'fontSize': '16px'}
+    style = {'fontSize': '18px'}
     return [
-        html.Span('Iteration #{0} takes {1:.2f} sec'.format(len(losses), taked_times[-1]), style=style)
+        html.Span('Iteration #{0} takes {1:.2f} sec'.format(len(parser.losses), parser.taked_times[-1]), style=style)
     ]
 
 
 @app.callback(Output('time_left', 'children'),
               [Input('timer', 'n_intervals')])
 def update_timeleft(n_intervals):
-    style = {'padding': '5px', 'fontSize': '16px'}
+    style = {'fontSize': '18px'}
     return [
-        html.Span('Time left: {0:.2f} hr'.format(hours_left[-1]), style=style)
+        html.Span('Time left: {0:.2f} hr'.format(parser.hours_left), style=style)
     ]
 
 
-@app.callback(Output('example-graph', 'figure'),
+@app.callback(Output('best_map', 'children'),
               [Input('timer', 'n_intervals')])
-def update_graph(n_intervals):
+def update_best_map(n_intervals):
+    style = {'fontSize': '18px'}
+    return [
+        html.Span('Best map: {0:.2f}'.format(parser.best_map), style=style)
+    ]
+
+
+@app.callback(Output('loss-graph', 'figure'),
+              [Input('timer', 'n_intervals')])
+def update_loss_graph(n_intervals):
 
     x_range = []
     y_range = []
-    history_len = 150
 
-    if len(losses) < 100:
+    history_len = 250
+
+    if len(parser.losses) < 100:
         history_len = 50
-    elif len(losses) < 250:
+    elif len(parser.losses) < 250:
         history_len = 100
+    elif len(parser.losses) < 400:
+        history_len = 150
 
-    if len(losses) > history_len:
-        x_range = [len(losses)-history_len, len(losses)]
-        last_losses = losses[-history_len:]
+    if len(parser.losses) > history_len:
+        x_range = [len(parser.losses)-history_len, len(parser.losses)]
+        last_losses = parser.losses[-history_len:]
         y_min = min(last_losses) * 0.9
         y_max = max(last_losses) * 1.1
         y_range = [y_min, y_max]
 
-    data = [
-        {
-            'y': losses,
-            'type': 'line'
-        },
-    ]
+    layout = loss_defaul_layout.copy()
+    layout['xaxis']['range'] = x_range
+    layout['yaxis']['range'] = y_range
 
     return {
-                'data': data,
-                'layout': {
-                    'uirevision': True,
-                    'title': 'Dash Data Visualization',
-                    'xaxis': {
-                        'title': 'Iterations',
-                        'range': x_range
-                        },
-                    'yaxis': {
-                        'title': 'Avarage loss',
-                        'range': y_range
-                    }
-                }
+                'data': [loss_graph_data()],
+                'layout': layout
             }
+
+
+@app.callback(Output('map-graph', 'figure'),
+              [Input('timer', 'n_intervals')])
+def update_map_graph(n_intervals):
+    return {
+        'data': [map_graph_data()],
+        'layout': map_default_layout
+    }
 
 
 if __name__ == '__main__':
     t.start()
-    app.run_server(debug=True, threaded=False)
+    app.run_server(debug=True)
