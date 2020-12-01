@@ -184,4 +184,4 @@ def update_map_graph(n_intervals):
 
 if __name__ == '__main__':
     t.start()
-    app.run_server(debug=True)
+    app.run_server(host='0.0.0.0', debug=True)
