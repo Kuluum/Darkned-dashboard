@@ -6,9 +6,9 @@ class DarknetLogParser:
 
     def __init__(self, log_path: str):
         # re
-        self.iteration_pattern = re.compile(r'(\d.*):(.*)')
-        self.next_map_in_pattern = re.compile(r'next mAP calculation at (\d.*) iterations')
-        self.map_info_pattern = re.compile(r'Last accuracy mAP@0.5 = (\d.*) %, best = (\d.*) %')
+        self.iteration_pattern = re.compile(r'(\d+):(.*)')
+        self.next_map_in_pattern = re.compile(r'next mAP calculation at (\d*) iterations')
+        self.map_info_pattern = re.compile(r'Last accuracy mAP@0.5 = (.+) %, best = (.+) %')
 
         # file path
         self.log_path = log_path
@@ -21,6 +21,7 @@ class DarknetLogParser:
         self.losses = []
         self.taked_times = []
         self.hours_left = -1
+        self.iteration_num = 0
 
     def follow(self, thefile):
         from_beginning = True
@@ -51,8 +52,10 @@ class DarknetLogParser:
             line = line.strip()
 
             # Iteration info
-            if self.iteration_pattern.match(line):
+            iteration_finded = self.iteration_pattern.findall(line)
+            if len(iteration_finded) > 0:
                 extracted = self.extract_iteration_info(line)
+                self.iteration_num = int(iteration_finded[0][0])
                 if extracted is not None:
                     loss, taked_time, time_left = extracted
                     self.losses.append(loss)

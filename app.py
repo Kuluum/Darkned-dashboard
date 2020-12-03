@@ -56,13 +56,7 @@ def loss_graph_data():
 loss_graph = dcc.Graph(
                     id='loss-graph',
                     figure={
-                        'data': [loss_graph_data()
-                            # {
-                            #     'y': parser.losses,
-                            #     'type': 'line',
-                            #     'title': 'Loss'
-                            # },
-                        ],
+                        'data': [loss_graph_data()],
                         'layout': loss_defaul_layout
                     },
                     config={
@@ -118,7 +112,7 @@ app.layout = html.Div([
 def update_iteration(n_intervals):
     style = {'fontSize': '18px'}
     return [
-        html.Span('Iteration #{0} takes {1:.2f} sec'.format(len(parser.losses), parser.taked_times[-1]), style=style)
+        html.Span('Iteration #{0} takes {1:.2f} sec'.format(parser.iteration_num, parser.taked_times[-1]), style=style)
     ]
 
 
