@@ -64,7 +64,7 @@ class DarknetLogParser:
                 continue
 
             # Next map calculation info
-            if self.next_map_calculation == -1 or len(self.losses) > self.next_map_calculation:
+            if self.next_map_calculation == -1 or self.iteration_num > self.next_map_calculation:
 
                 finded = self.next_map_in_pattern.findall(line)
                 if len(finded) == 1:
