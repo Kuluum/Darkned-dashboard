@@ -36,7 +36,7 @@ loss_defaul_layout = {
     'xaxis': {
         'title': 'Iterations',
         'fixedrange': True
-        },
+    },
     'yaxis': {
         'title': 'Avarage loss',
         'fixedrange': True
@@ -49,7 +49,7 @@ map_default_layout = {
     'title': 'Map',
     'xaxis': {
         'title': 'Iterations'
-        },
+    },
     'yaxis': {
         'title': 'Map'
     }
@@ -64,15 +64,15 @@ def loss_graph_data():
 
 
 loss_graph = dcc.Graph(
-                    id='loss-graph',
-                    figure={
-                        'data': [loss_graph_data()],
-                        'layout': loss_defaul_layout
-                    },
-                    config={
-                        'modeBarButtons': [['hoverClosestCartesian', 'hoverCompareCartesian']]
-                    }
-            )
+    id='loss-graph',
+    figure={
+        'data': [loss_graph_data()],
+        'layout': loss_defaul_layout
+    },
+    config={
+        'modeBarButtons': [['hoverClosestCartesian', 'hoverCompareCartesian']]
+    }
+)
 
 
 def map_graph_data():
@@ -84,18 +84,18 @@ def map_graph_data():
 
 
 map_graph = dcc.Graph(
-                    id='map-graph',
-                    figure={
-                        'data': [
-                            map_graph_data()
-                        ],
-                        'layout': map_default_layout
-                    },
-                    config={
-                        'modeBarButtons': [['pan2d', 'zoom2d', 'resetScale2d',
-                                            'hoverClosestCartesian', 'hoverCompareCartesian']]
-                    }
-            )
+    id='map-graph',
+    figure={
+        'data': [
+            map_graph_data()
+        ],
+        'layout': map_default_layout
+    },
+    config={
+        'modeBarButtons': [['pan2d', 'zoom2d', 'resetScale2d',
+                            'hoverClosestCartesian', 'hoverCompareCartesian']]
+    }
+)
 
 app.layout = html.Div([
     dbc.Col([
@@ -129,7 +129,8 @@ app.layout = html.Div([
 def update_iteration(n_intervals):
     style = {'fontSize': '18px'}
     return [
-        html.Span('Iteration #{0} takes {1:.2f} sec'.format(parser.iteration_num, parser.taked_times[-1]), style=style)
+        html.Span('Iteration #{0} takes {1:.2f} sec'.format(
+            parser.iteration_num, parser.taked_times[-1]), style=style)
     ]
 
 
@@ -138,7 +139,8 @@ def update_iteration(n_intervals):
 def update_timeleft(n_intervals):
     style = {'fontSize': '18px'}
     return [
-        html.Span('Time left: {0:.2f} hr'.format(parser.hours_left), style=style)
+        html.Span('Time left: {0:.2f} hr'.format(
+            parser.hours_left), style=style)
     ]
 
 
@@ -159,7 +161,7 @@ def update_nvidia_smi(n_intervals):
              'white-space': 'pre',
              'font-family': 'Courier',
              'display': 'inline-block'
-}
+             }
     return [
         html.Span(nvidia_smi, style=style)
     ]
@@ -182,7 +184,7 @@ def update_loss_graph(n_intervals):
         history_len = 150
 
     if len(parser.losses) > history_len:
-        x_range = [len(parser.losses)-history_len, len(parser.losses)]
+        x_range = [len(parser.losses) - history_len, len(parser.losses)]
         last_losses = parser.losses[-history_len:]
         y_min = min(last_losses) * 0.9
         y_max = max(last_losses) * 1.1
@@ -193,9 +195,9 @@ def update_loss_graph(n_intervals):
     layout['yaxis']['range'] = y_range
 
     return {
-                'data': [loss_graph_data()],
-                'layout': layout
-            }
+        'data': [loss_graph_data()],
+        'layout': layout
+    }
 
 
 @app.callback(Output('map-graph', 'figure'),
