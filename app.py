@@ -2,39 +2,49 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
-
-import plotly
 import plotly.graph_objs as go
-
-
 from DarknetLogParser import DarknetLogParser
+import dash_bootstrap_components as dbc
 import threading
 import sys
+import os
 
 log_path = sys.argv[1]
 
 parser = DarknetLogParser(log_path)
 
-t = threading.Thread(target=parser.run)
+log_parser_thread = threading.Thread(target=parser.run)
 
 
-app = dash.Dash(__name__, external_stylesheets=['https://codepen.io/chriddyp/pen/bWLwgP.css'])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 
+# Colors
+bgcolor = "#191a1a"
+text_color = "#cfd8dc"
+template = {
+    'layout': {
+        'paper_bgcolor': bgcolor,
+        'plot_bgcolor': bgcolor,
+        'font': {'color': text_color}
+    }
+}
 
 loss_defaul_layout = {
+    'template': template,
     'uirevision': True,
     'title': 'Loss',
     'xaxis': {
         'title': 'Iterations',
-        'fixedrange':True
+        'fixedrange': True
         },
     'yaxis': {
         'title': 'Avarage loss',
-        'fixedrange':True
+        'fixedrange': True
     }
 }
 
 map_default_layout = {
+    'template': template,
     'uirevision': True,
     'title': 'Map',
     'xaxis': {
@@ -82,29 +92,36 @@ map_graph = dcc.Graph(
                         'layout': map_default_layout
                     },
                     config={
-                        'modeBarButtons': [['pan2d', 'zoom2d', 'resetScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian']]
+                        'modeBarButtons': [['pan2d', 'zoom2d', 'resetScale2d',
+                                            'hoverClosestCartesian', 'hoverCompareCartesian']]
                     }
             )
 
 app.layout = html.Div([
-        html.H1(children='Darknet train', id='first'),
+    dbc.Col([
+        html.H1(children='Darknet train'),
 
         html.Div(id='iterations_info'),
         html.Div(style={'padding': 5}),
+
         html.Div(id='time_left'),
         html.Div(style={'padding': 5}),
+
         html.Div(id='best_map'),
+        html.Div(style={'padding': 5}),
 
-        html.Div([
-            # six columns = 50% (12-column fluid grid with a max width of 960px) external_stylesheets
-            html.Div([loss_graph], className="six columns"),
-            html.Div([map_graph], className="six columns")
-        ], className="row"),
+        dbc.Row([
+            dbc.Col(html.Div([loss_graph]), width=6),
+            dbc.Col(html.Div([map_graph]), width=6)
+        ]),
+        html.Div(style={'padding': 10}),
 
+        html.H1(children='nvidia_smi'),
+        html.Div(id='nvidia_smi'),
 
         dcc.Interval(id='timer', interval=2000),
-    ]
-)
+    ])
+])
 
 
 @app.callback(Output('iterations_info', 'children'),
@@ -131,6 +148,20 @@ def update_best_map(n_intervals):
     style = {'fontSize': '18px'}
     return [
         html.Span('Best map: {0:.2f}'.format(parser.best_map), style=style)
+    ]
+
+
+@app.callback(Output('nvidia_smi', 'children'),
+              [Input('timer', 'n_intervals')])
+def update_nvidia_smi(n_intervals):
+    nvidia_smi = os.popen('nvidia-smi').read()
+    style = {'fontSize': '18px',
+             'white-space': 'pre',
+             'font-family': 'Courier',
+             'display': 'inline-block'
+}
+    return [
+        html.Span(nvidia_smi, style=style)
     ]
 
 
@@ -177,5 +208,5 @@ def update_map_graph(n_intervals):
 
 
 if __name__ == '__main__':
-    t.start()
+    log_parser_thread.start()
     app.run_server(host='0.0.0.0', debug=True)
