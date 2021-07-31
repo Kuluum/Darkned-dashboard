@@ -39,10 +39,15 @@ class DarknetLogParser:
         if len(info_splt) < 6:
             print('wtf', info_splt)
             return None
-        avg_loss = float(info_splt[1].split()[0])
-        taked_time = float(info_splt[3].split()[0])
-        time_left = float(info_splt[5].split()[0])
-        return (avg_loss, taked_time, time_left)
+
+        try:
+            avg_loss = float(info_splt[1].split()[0])
+            taked_time = float(info_splt[3].split()[0])
+            time_left = float(info_splt[5].split()[0])
+            return (avg_loss, taked_time, time_left)
+        except Exception:
+            print('wtf', info_splt)
+            return None
 
     def run(self):
         logfile = open(self.log_path, "r")
