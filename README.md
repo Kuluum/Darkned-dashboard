@@ -1,5 +1,7 @@
 # Darknet-dashboard
 
+![](https://github.com/Kuluum/Darknet-dashboard/blob/main/darknet_dashboard.png)
+
 Simple dashboard for monitoring darknet (https://github.com/AlexeyAB/darknet) training (checked only for yolov4 detection).
 
 Shows current iteration number, loss graph and time left.
